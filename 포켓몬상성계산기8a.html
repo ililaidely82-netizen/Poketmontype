@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>포켓몬 타입 상성 계산기+</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+
+:root{
+  --accent:#e67e22; --card:#fff; --bg:#faf7f2; --text:#222; --atext:#fff;
+  --muted:#666; --color4:#d32f2f; --color2:#e53935; --color1:#222;
+  --color05:#1e88e5; --color025:#81d4fa; --color0:#888; --Bborder:#ccc; --Aborder:#ddd;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --accent:#f39c12; --card:#1c1c1c; --bg:#121212; --text:#fff; --atext:#fff;
+    --muted:#b0b0b0; --color4:#ff1111; --color2:#ff6b6b; --color1:#fff;
+    --color05:#4fc3f7; --color025:#8fdfff; --color0:#ccc; --Aborder:#eee; --Bborder:#fff;
+  }
+}
+
+html,body{height:100%;margin:0;font-family:'Jua',sans-serif;background:var(--bg);color:var(--text);font-size:16px;}
+.wrap{max-width:920px;margin:16px auto;padding:16px;}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+h1{font-size:1.5rem;margin:0;color:var(--accent);}
+p.lead{margin:6px 0 14px;color:var(--muted);font-size:14px;}
+button{  -webkit-tap-highlight-color: transparent; /* 모바일 크롬 파란 네모 제거 */outline: none; /* 포커스 테두리 제거 */}
+button:active{transform: scale(1.08);
+  box-shadow: 0 0.6rem 1rem rgba(0,0,0,0.15);}
+.card{background:var(--card);border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,0.06);padding:16px;margin-bottom:16px;transition:0.3s;}
+.mode-row, .button-row-right{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.button-row-right{justify-content:flex-end;margin:8px 0;}
+.big-btn{appearance:none;border:2px solid #eee;background:white;padding:14px 16px;border-radius:12px;font-size:18px;min-width:100px;text-align:center;cursor:pointer;transition:0.3s;font-family:'Jua',sans-serif;}
+.big-btn.primary{background:var(--accent);color:white;border-color:var(--accent);}
+.big-btn.ghost{background:transparent;border-color:#ddd;color:var(--text);}
+.big-btn.toggle-on{background:var(--accent);color:var(--atext);border-color:var(--accent);}
+.type-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:14px;}
+.type-tile{background:var(--card);border-radius:0.7rem;padding:0.9rem;font-weight:700;text-align:center;height:1.5rem;border:0.12rem solid var(--Bborder);box-shadow:0 0.4rem 0.8rem rgba(0,0,0,0.03);cursor:pointer;user-select:none;font-size:1rem;transition:0.3s;transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.3s, color 0.3s;  -webkit-tap-highlight-color: transparent; /* 모바일 크롬 파란 네모 제거 */
+  outline: none; /* 포커스 테두리 제거 */}
+/*타입 버튼 스타일*/
+.type-tile.selected{background:var(--accent);color:var(--atext);border-color:var(--Aborder);box-shadow:0 0.4rem 0.8rem rgba(0,0,0,0.12);}
+
+.type-tile:active {
+  transform: scale(1.08);
+  box-shadow: 0 0.6rem 1rem rgba(0,0,0,0.15);
+}
+/*에니메이션*/
+
+.hint{font-size:0.8125rem;color:var(--muted);margin-top:0.5rem;}
+table{width:100%;border-collapse:collapse;margin-top:0.875rem;font-size:1rem;}
+th,td{padding:0.75rem 0.625rem;border:1px solid #e6e6e6;text-align:center;}
+th{background:var(--accent);color:#fff;font-weight:700;font-size:1rem;}
+.small{font-size:0.8125rem;color:var(--muted);}
+footer{margin-top:0.75rem;font-size:0.75rem;color:var(--muted);text-align:center;}
+
+/* 반응형 */
+@media(max-width:680px){.type-grid{grid-template-columns:repeat(4,1fr);}.button-row-right{justify-content:flex-start;}}
+@media(max-width:480px){
+  .type-grid{grid-template-columns:repeat(3,1fr);}
+  h1{font-size:1.25rem;}
+  .big-btn{font-size:16px;padding:10px 12px;min-width:80px;}
+  .type-tile{font-size:0.875rem;padding:0.6rem;}
+  .card{padding:10px;}
+  table{width:95vw;font-size:0.875rem;display:block;overflow-x:auto;}
+  td,th{padding:0.6rem 0.5rem;}
+  .button-row-right{justify-content:flex-start;gap:6px;}
+  .card > div > .hint{display:block !important;margin-top:6px;}
+  .mode-row{flex-direction:column;gap:6px;}
+}
+@media(orientation:landscape){.wrap{max-width:95%;margin:12px auto;}.type-grid{gap:8px;}.card{padding:12px;}}
+
+/*파란 창 없애기*/
+button:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* 순차 등장 애니메이션 */
+@keyframes fadeSlideUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-item {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.animate-item.show {
+  animation: fadeSlideUp 0.5s forwards;
+}
+/*애니메이션 끝*/
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>포켓몬 타입 상성 계산기</h1></header>
+<p class="lead">모드를 선택 후 타입을 선택하세요.</p>
+
+<div class="card" id="choose">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+    <div>
+      <label style="font-weight:700;">모드 선택</label>
+      <div class="mode-row" style="margin-top:8px;">
+        <button id="mode-attack" class="big-btn primary">A. 공격 → 방어</button>
+        <button id="mode-defend" class="big-btn ghost">B. 방어 ← 공격</button>
+      </div>
+    </div>
+    <div style="flex:1">
+      <div class="hint">A: 공격 타입 1개 선택 → 방어 타입별 결과<br>B: 방어 타입 1~2개 선택 → 공격 타입별 결과</div>
+    </div>
+  </div>
+</div>
+
+<!-- 공격 영역 -->
+<div id="attack-area" class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div class="rider"><strong>A. 공격 타입 선택 (1개)</strong><div class="small">선택한 공격 타입으로 방어 타입 공격 결과</div></div>
+    <div class="button-row-right">
+      <button id="attack-calc" class="big-btn primary">계산</button>
+      <button id="attack-clear" class="big-btn ghost">초기화</button>
+      <button id="attack-toggle-2x" class="big-btn ghost">2배만 보기</button>
+    </div>
+  </div>
+  <div class="type-grid" id="attack-type-grid"></div>
+  <div class="hint">하나만 선택하세요.</div>
+  <div id="attack-result" style="display:none;">
+    <table id="attack-table"><thead id="attack-thead"></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<!-- 방어 영역 -->
+<div id="defend-area" class="card" style="display:none;">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div><strong>B. 방어 타입 선택 (최대 2개)</strong><div class="small">선택한 방어 타입으로 공격 타입 방어 결과</div></div>
+    <div class="button-row-right">
+      <button id="defend-calc" class="big-btn primary">계산</button>
+      <button id="defend-clear" class="big-btn ghost">초기화</button>
+      <button id="defend-toggle-2x" class="big-btn ghost">2배만 보기</button>
+    </div>
+  </div>
+  <div class="type-grid" id="defend-type-grid"></div>
+  <div class="hint">최대 2개 선택</div>
+  <div id="defend-result" style="display:none;">
+    <table id="defend-table"><thead id="defend-thead"></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<footer>☆ 포켓몬 상성 계산기 8+ ☆</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // ===== 9세대 기준 타입 상성표 =====
+  const typeChart = {
+    "노말":{"바위":0.5,"고스트":0,"강철":0.5},
+    "불":{"불":0.5,"물":0.5,"풀":2,"얼음":2,"벌레":2,"바위":0.5,"드래곤":0.5,"강철":2},
+    "물":{"불":2,"물":0.5,"풀":0.5,"얼음":0.5,"강철":0.5,"바위":2,"드래곤":0.5},
+    "전기":{"물":2,"전기":0.5,"풀":0.5,"비행":2,"드래곤":0.5,"땅":0},
+    "풀":{"불":0.5,"물":2,"풀":0.5,"얼음":0.5,"비행":0.5,"벌레":0.5,"바위":2,"드래곤":0.5,"강철":0.5},
+    "얼음":{"불":0.5,"물":0.5,"풀":2,"얼음":0.5,"비행":2,"드래곤":2,"강철":0.5},
+    "격투":{"노말":2,"얼음":2,"바위":2,"악":0.5,"강철":2,"독":0.5,"비행":0.5,"에스퍼":0.5,"벌레":0.5,"페어리":0.5,"고스트":0},
+    "독":{"풀":2,"페어리":2,"독":0.5,"땅":0.5,"바위":0.5,"강철":0,"고스트":0.5},
+    "땅":{"불":2,"전기":2,"독":2,"바위":2,"강철":2,"풀":0.5,"벌레":0.5,"비행":0},
+    "비행":{"풀":2,"격투":2,"벌레":2,"전기":0.5,"바위":0.5,"강철":0.5},
+    "에스퍼":{"격투":2,"독":2,"에스퍼":0.5,"강철":0.5,"악":0},
+    "벌레":{"풀":2,"에스퍼":2,"악":2,"불":0.5,"격투":0.5,"비행":0.5,"고스트":0.5,"강철":0.5,"페어리":0.5},
+    "바위":{"불":2,"얼음":2,"비행":2,"벌레":2,"격투":0.5,"땅":0.5,"강철":0.5},
+    "고스트":{"에스퍼":2,"고스트":2,"악":0.5,"노말":0},
+    "드래곤":{"드래곤":2,"강철":0.5,"페어리":0},
+    "악":{"에스퍼":2,"고스트":2,"격투":0.5,"악":0.5,"페어리":0.5},
+    "강철":{"얼음":2,"바위":2,"페어리":2,"불":0.5,"물":0.5,"전기":0.5,"강철":0.5},
+    "페어리":{"격투":2,"드래곤":2,"악":2,"불":0.5,"독":0.5,"강철":0.5}
+  };
+
+  // ===== 타입 순서 =====
+  const typeOrder = ["노말","불","물","전기","풀","얼음","격투","독","땅","비행","에스퍼","벌레","바위","고스트","드래곤","악","강철","페어리"];
+  const allTypes = typeOrder.slice();
+
+  // ===== DOM =====
+  const attackGrid = document.getElementById('attack-type-grid');
+  const defendGrid = document.getElementById('defend-type-grid');
+  const attackTableBody = document.querySelector('#attack-table tbody');
+  const defendTableBody = document.querySelector('#defend-table tbody');
+  const attackResultDiv = document.getElementById('attack-result');
+  const defendResultDiv = document.getElementById('defend-result');
+
+  let currentMode = 'attack';
+  let attackFilter2x = false;
+  let defendFilter2x = false;
+  let attackSelected = null;
+  let defendSelected = new Set();
+
+  // ===== 버튼 =====
+  document.getElementById('mode-attack').addEventListener('click',()=>switchMode('attack'));
+  document.getElementById('mode-defend').addEventListener('click',()=>switchMode('defend'));
+function animateBtn(btn){
+    btn.style.transition = 'transform 0.5s ease';
+    btn.style.transform = 'scale(1.08)';
+    setTimeout(() => btn.style.transform = 'scale(1)', 150);
+}
+
+//=== 2배만 보기 ===
+document.getElementById('attack-toggle-2x').addEventListener('click',()=>{
+    attackFilter2x = !attackFilter2x;
+    const btn = document.getElementById('attack-toggle-2x');
+    btn.className = attackFilter2x ? 'big-btn toggle-on':'big-btn ghost';
+    animateBtn(btn);  // ← 여기!
+    if(attackResultDiv.style.display!=='none') renderAttackTable();
+});
+
+document.getElementById('defend-toggle-2x').addEventListener('click',()=>{
+    defendFilter2x = !defendFilter2x;
+    const btn = document.getElementById('defend-toggle-2x');
+    btn.className = defendFilter2x ? 'big-btn toggle-on':'big-btn ghost';
+    animateBtn(btn);  // ← 여기!
+    if(defendResultDiv.style.display!=='none') renderDefendTable();
+});
+
+  // ===== 모드 전환 =====
+function switchMode(mode){
+    currentMode = mode;
+    const attackArea = document.getElementById('attack-area');
+    const defendArea = document.getElementById('defend-area');
+    attackArea.style.display = mode === 'attack' ? 'block' : 'none';
+    defendArea.style.display = mode === 'defend' ? 'block' : 'none';
+    document.getElementById('mode-attack').className = mode === 'attack' ? 'big-btn primary' : 'big-btn ghost';
+    document.getElementById('mode-defend').className = mode === 'defend' ? 'big-btn primary' : 'big-btn ghost';
+  
+    // ===== 모드 변경 시 타입 버튼 순차 등장 =====
+    const tiles = mode === 'attack'
+        ? [...document.querySelectorAll('#attack-type-grid .type-tile')]
+        : [...document.querySelectorAll('#defend-type-grid .type-tile')];
+
+    tiles.forEach((el, idx) => {
+        el.style.opacity = 0;
+        el.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            el.style.transition = 'all 0.4s ease-out';
+            el.style.opacity = 1;
+            el.style.transform = 'translateY(0)';
+        }, idx * 20); // 0.05초 간격
+    });
+}
+
+// ===== 타입 상징색 =====
+const typeColors = {
+  "노말":"#949495","불":"#e56c3e","물":"#5185ff","풀":"#82C274","전기":"#fbb917",
+  "얼음":"#6dcefb","격투":"#e09c40","독":"#735198","땅":"#9c7743","비행":"#a2c3e7",
+  "에스퍼":"#dd6b7b","벌레":"#9fa244","바위":"#bfb889","고스트":"#684870","드래곤":"#535ca8",
+  "악":"#4c4948","강철":"#98C2D1","페어리":"#F5A2F5"
+};
+
+// ===== 타입 선택 함수 =====
+function makeTypeTile(type, onClick, container){
+  const div = document.createElement('div');
+  div.className = 'type-tile';
+  div.textContent = type;
+  div.dataset.type = type;
+  div.addEventListener('click', ()=>onClick(div, type));
+  container.appendChild(div);
+}
+
+// ===== 타입 버튼 생성 =====
+allTypes.forEach(t => {
+// 공격 타입 선택 예시
+makeTypeTile(t, (el, type) => {
+  if(attackSelected === el){
+    el.classList.remove('selected');
+    el.style.backgroundColor = '';
+    el.style.color = '';
+    el.style.transform = 'scale(0.95)';
+    setTimeout(() => el.style.transform = '', 150);
+    attackSelected = null;
+  } else {
+    if(attackSelected){
+      attackSelected.classList.remove('selected');
+      attackSelected.style.backgroundColor = '';
+      attackSelected.style.color = '';
+    }
+    el.classList.add('selected');
+    el.style.backgroundColor = typeColors[type];
+    el.style.color = '#fff';
+    el.style.transform = 'scale(1.1)';
+    setTimeout(() => el.style.transform = '', 150);
+    attackSelected = el;
+  }
+  attackResultDiv.style.display = 'none';
+}, attackGrid);
+
+// 방어 타입 선택
+makeTypeTile(t, (el, type) => {
+  if(defendSelected.has(type)){
+    defendSelected.delete(type);
+    el.classList.remove('selected');
+    el.style.backgroundColor = '';
+    el.style.color = '';
+    el.style.transform = 'scale(0.95)';
+    setTimeout(() => el.style.transform = '', 150);
+  } else {
+    if(defendSelected.size >= 2){
+      const first = [...defendSelected][0];
+      defendSelected.delete(first);
+      const old = defendGrid.querySelector(`.type-tile[data-type="${first}"]`);
+      if(old){
+        old.classList.remove('selected');
+        old.style.backgroundColor = '';
+        old.style.color = '';
+        old.style.transform = 'scale(0.95)';
+        setTimeout(() => old.style.transform = '', 150);
+      }
+    }
+    defendSelected.add(type);
+    el.classList.add('selected');
+    el.style.backgroundColor = typeColors[type];
+    el.style.color = '#fff';
+    el.style.transform = 'scale(1.1)';
+    setTimeout(() => el.style.transform = '', 150);
+  }
+  defendResultDiv.style.display = 'none';
+}, defendGrid);
+});
+
+  // ===== 계산 함수 =====
+  function calcDamage(attTypes, defTypes){
+    return attTypes.reduce((acc, att) => {
+      return acc * defTypes.reduce((a, def) => {
+        const val = typeChart[att][def] ?? 1;
+        return a * val;
+      }, 1);
+    }, 1);
+  }
+
+  // ===== 정규화 =====
+  function normalize(v){
+    if(v===0) return 0;
+    if(v<=0.25) return 0.25;
+    if(v<=0.5) return 0.5;
+    if(v<=1) return 1;
+    if(v<=2) return 2;
+    return 4;
+  }
+
+  // ===== 색 =====
+  function getColor(v){
+    switch(v){
+      case 4: return 'var(--color4)';
+      case 2: return 'var(--color2)';
+      case 1: return 'var(--color1)';
+      case 0.5: return 'var(--color05)';
+      case 0.25: return 'var(--color025)';
+      case 0: return 'var(--color0)';
+    }
+  }
+
+// ===== 계산 버튼 이벤트 =====
+document.getElementById('attack-calc').addEventListener('click', renderAttackTable);
+document.getElementById('attack-clear').addEventListener('click', () => {
+    if(attackSelected){
+        attackSelected.classList.remove('selected');
+        attackSelected.style.backgroundColor = '';
+        attackSelected.style.color = '';
+        attackSelected = null;
+    }
+    attackResultDiv.style.display='none';
+});
+
+document.getElementById('defend-calc').addEventListener('click', renderDefendTable);
+document.getElementById('defend-clear').addEventListener('click', () => {
+    defendSelected.forEach(type => {
+        const el = defendGrid.querySelector(`.type-tile[data-type="${type}"]`);
+        if(el){
+            el.classList.remove('selected');
+            el.style.backgroundColor = '';
+            el.style.color = '';
+        }
+    });
+    defendSelected.clear();
+    defendResultDiv.style.display='none';
+});
+
+// ===== 공격/방어 테이블 렌더 호출 =====
+function renderAttackTable(){
+    if(!attackSelected) return;
+
+    // 방어표 숨기기
+    defendResultDiv.style.display = 'none';
+
+    renderTable(
+        [attackSelected.dataset.type],    // 공격 타입만 전달
+        allTypes,
+        attackTableBody,
+        document.getElementById('attack-thead'),
+        attackFilter2x,
+        'attack'
+    );
+
+    attackResultDiv.style.display = 'block';
+}
+function renderDefendTable(){
+    if(defendSelected.size === 0) return;
+
+    // 공격표 숨기기
+    attackResultDiv.style.display = 'none';
+
+    renderTable(
+        [...defendSelected],              // 방어 타입만 전달
+        allTypes,
+        defendTableBody,
+        document.getElementById('defend-thead'),
+        defendFilter2x,
+        'defend'
+    );
+
+    defendResultDiv.style.display = 'block';
+}
+
+// ===== renderTable 수정 =====
+function renderTable(attTypes, defList, tbody, thead, filter2x, mode){
+    tbody.innerHTML = '';
+    const isSmallScreen = window.matchMedia("(max-width:480px)").matches;
+
+    const filteredList = filter2x
+        ? defList.filter(type => normalize(
+            mode === 'attack'
+                ? calcDamage(attTypes, [type])   // 공격 모드: attTypes = [attackSelected]
+                : calcDamage([type], attTypes)   // 방어 모드: attTypes = [...defendSelected]
+        ) >= 2)
+        : defList.slice();
+
+    if(filteredList.length === 0){
+        tbody.innerHTML = `<tr><td colspan="${isSmallScreen ? 6 : 3}">표시할 결과가 없습니다.</td></tr>`;
+        return;
+    }
+
+    if(isSmallScreen){
+        thead.innerHTML = `<tr>
+            <th>${mode==='attack'?'방어 타입':'공격 타입'}</th><th>배율</th><th class="small">원값</th>
+            <th>${mode==='attack'?'방어 타입':'공격 타입'}</th><th>배율</th><th class="small">원값</th>
+        </tr>`;
+
+        const col1 = filteredList.slice(0, Math.ceil(filteredList.length/2));
+        const col2 = filteredList.slice(Math.ceil(filteredList.length/2));
+        const maxRows = Math.max(col1.length, col2.length);
+
+        for(let i=0; i<maxRows; i++){
+            const tr = document.createElement('tr');
+            [col1[i], col2[i]].forEach(type=>{
+                if(type){
+                    const raw = mode==='attack'
+                        ? calcDamage(attTypes, [type])
+                        : calcDamage([type], attTypes);
+                    const norm = normalize(raw);
+                    tr.innerHTML += `<td>${type}</td><td style="color:${getColor(norm)}"><strong>${norm}</strong></td><td class="small">${raw}</td>`;
+                } else {
+                    tr.innerHTML += '<td colspan="3"></td>';
+                }
+            });
+            tbody.appendChild(tr);
+        }
+    } else {
+        thead.innerHTML = `<tr><th>${mode==='attack'?'방어 타입':'공격 타입'}</th><th>배율</th><th class="small">원값</th></tr>`;
+        filteredList.forEach(type=>{
+            const raw = mode==='attack'
+                ? calcDamage(attTypes, [type])
+                : calcDamage([type], attTypes);
+            const norm = normalize(raw);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${type}</td><td style="color:${getColor(norm)}"><strong>${norm}</strong></td><td class="small">${raw}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+}
+  // ===== 초기 모드 =====
+  switchMode('attack');
+});
+
+window.addEventListener('resize', () => {
+    if (attackResultDiv.style.display !== 'none') renderAttackTable();
+    if (defendResultDiv.style.display !== 'none') renderDefendTable();
+});
+
+// ===== 순차 등장 애니메이션 (개선 버전) =====
+const animatedItems = [
+  document.querySelector('header h1'),
+  document.querySelector('.lead'),
+  ...document.querySelectorAll('.card'),
+  document.querySelector('footer')
+];
+
+animatedItems.forEach((el, i) => {
+  if (!el) return;
+  el.classList.add('animate-item');
+  setTimeout(() => {
+    el.classList.add('show');
+  }, i * 200); // 순차 등장 (0.2초 간격)
+});
+</script>
+</body>
+</html>
